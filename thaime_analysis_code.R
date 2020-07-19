@@ -16,7 +16,7 @@ Sys.setlocale("LC_ALL", "Thai")
 
 # --- test json to df --- #
 x <- "http://nscr.nesdb.go.th/wp-admin/admin-ajax.php?action=wp_ajax_ninja_tables_public_action&table_id=12653&target_action=get-all-data&default_sorting=old_first&skip_rows=0&limit_rows=0&chunk_number=0"
-x <- fromJSON(x) %>% head()
+x <- fromJSON(x)
 x <- x[2]
 
 # store to df
@@ -30,7 +30,9 @@ data.frame(project_name = x$value[2] %>% unname(),
 
 # --- get all data --- #
 # tables stored in ajax (urls found in Network tab)
+# create chunk urls 1-15 to loop over
 chunk_urls <- paste0("http://nscr.nesdb.go.th/wp-admin/admin-ajax.php?action=wp_ajax_ninja_tables_public_action&table_id=12653&target_action=get-all-data&default_sorting=old_first&skip_rows=0&limit_rows=0&chunk_number=",0:15)
+# create empty table to store data after loop is finished
 collected_tables <- data.frame()
 
 for(i in 1:length(chunk_urls)) {
@@ -46,26 +48,37 @@ for(i in 1:length(chunk_urls)) {
    collected_tables <- rbind(collected_tables, data_temp)
 }
 
+# --- clean data --- #
+# assign to new var
 collected_tables_2 <- unique(collected_tables)
+
+# names
+# 1. ministry
 collected_tables_2$ministry_name <- trimws(collected_tables_2$ministry_name)
 collected_tables_2$ministry_name <- gsub("กระทรวง", "", collected_tables_2$ministry_name)
 collected_tables_2 <- collected_tables_2[collected_tables_2$ministry_name != "", ]
+
+# 2. agency
 collected_tables_2$agency_name <- trimws(collected_tables_2$agency_name)
 collected_tables_2$agency_name[str_detect(collected_tables_2$agency_name, "ท้องถิ่น$") & !str_detect(collected_tables_2$agency_name, "\\/")] <- "กรมส่งเสริมการปกครองท้องถิ่น"
 
-# clean budget
-collected_tables_2$budget <- trimws(collected_tables_2$budget)
-collected_tables_2$budget <- gsub(",", "", collected_tables_2$budget)
-collected_tables_2$budget <- parse_number(collected_tables_2$budget)
-
+# 3. province
 collected_tables_2$province[str_detect(collected_tables_2$province, "^จังหวัด")] <- gsub("^จังหวัด", "", collected_tables_2$province)
 collected_tables_2$province <- trimws(collected_tables_2$province)
 collected_tables_2$province[collected_tables_2$province == "กรุงเทพมหานคร"] <- "กรุงเทพฯ"
 
 
+#  4. budget
+collected_tables_2$budget <- trimws(collected_tables_2$budget)
+collected_tables_2$budget <- gsub(",", "", collected_tables_2$budget)
+collected_tables_2$budget <- parse_number(collected_tables_2$budget)
+
+
+
+
 # top proposed ministry
 n_m <- 
-   collected_tables %>% 
+   collected_tables_2 %>% 
    count(ministry_name, sort = T) %>% 
    head(20)
 
@@ -159,7 +172,7 @@ bkk <- collected_tables_2[str_detect(collected_tables_2$province, "กรุง�
 bkk$budget <- round(bkk$budget / 1000000, 2)
 bkk$project_name <- gsub("โครงการ", "", bkk$project_name)
 
-bkk %>% group_by(province, project_name) %>% summarise(budget = sum(budget)) %>% 
+bkk %>% group_by(province, project_name) %>% summarise(budget = sum(budget)) %>% arrange(-budget) %>% select(project_name)
 ggplot(., aes(x = reorder(project_name, budget), y = budget)) +
    geom_col(width = 0.3, fill = "#03e8fc") +
    coord_flip() +
@@ -227,7 +240,7 @@ collected_tables_2 %>%
                                  TRUE ~ "Others")) %>%
    count(budget_bin, sort = T)
              
-   
+getwd()
    
    
 project_name_non_mega = setdiff(collected_tables_2$project_name, mega$project_name)
@@ -256,3 +269,5 @@ collected_tables_2$budget <- trimws(collected_tables_2$budget)
 collected_tables_2$budget <- gsub(",", "", collected_tables_2$budget)
 collected_tables_2$budget <- parse_number(collected_tables_2$budget)
 
+write.csv(collected_tables_2, "project_briefs_data.csv", row.names = F)
+x <- read.csv("https://raw.githubusercontent.com/chaiyasitbunnag/thaime_analysis/master/project_briefs_data.csv", header = T, stringsAsFactors = F)
