@@ -74,8 +74,6 @@ collected_tables_2$budget <- gsub(",", "", collected_tables_2$budget)
 collected_tables_2$budget <- parse_number(collected_tables_2$budget)
 
 
-
-
 # top proposed ministry
 n_m <- 
    collected_tables_2 %>% 
@@ -166,8 +164,6 @@ collected_tables_2$province[collected_tables_2$province == "กทม"] <- "ก�
 collected_tables_2$province[collected_tables_2$province == "กรุงเทพ"] <- "กรุงเทพฯ"
 collected_tables_2$province[collected_tables_2$province == "กรุงเทพมหานครและปริมณฑล"] <- "กรุงเทพฯ และปริมณฑล"
 
-
-
 bkk <- collected_tables_2[str_detect(collected_tables_2$province, "กรุงเทพ"), ]
 bkk$budget <- round(bkk$budget / 1000000, 2)
 bkk$project_name <- gsub("โครงการ", "", bkk$project_name)
@@ -239,35 +235,8 @@ collected_tables_2 %>%
                                  budget >= 10^11 ~ ">= 100 Billions",
                                  TRUE ~ "Others")) %>%
    count(budget_bin, sort = T)
-             
-getwd()
-   
-   
-project_name_non_mega = setdiff(collected_tables_2$project_name, mega$project_name)
-non_mega <- data.frame(project_name = project_name_non_mega)
-non_mega %>%
-   left_join(collected_tables_2 %>% mutate(budget = round(budget/1000000, 0)), "project_name") %>% 
-   count(province, sort = T)
 
-
-# check agency name
-   # filters used
-   # filter(str_detect(agency_name, "ท้องถิ่น$") & !str_detect(agency_name, "\\/"))
-   
-collected_tables_2 %>% 
-   #filter(!str_detect(agency_name, "^จังหวัด")) %>%
-   count(project_name, sort = T) %>% 
-   #select(agency_name) %>% 
-   View()
-
-# clean agency name
-collected_tables_2$agency_name <- trimws(collected_tables_2$agency_name)
-collected_tables_2$agency_name[str_detect(collected_tables_2$agency_name, "ท้องถิ่น$") & !str_detect(collected_tables_2$agency_name, "\\/")] <- "กรมส่งเสริมการปกครองท้องถิ่น"
-
-# clean budget
-collected_tables_2$budget <- trimws(collected_tables_2$budget)
-collected_tables_2$budget <- gsub(",", "", collected_tables_2$budget)
-collected_tables_2$budget <- parse_number(collected_tables_2$budget)
-
+# save data
 write.csv(collected_tables_2, "project_briefs_data.csv", row.names = F)
-x <- read.csv("https://raw.githubusercontent.com/chaiyasitbunnag/thaime_analysis/master/project_briefs_data.csv", header = T, stringsAsFactors = F)
+# import data
+#x <- read.csv("https://raw.githubusercontent.com/chaiyasitbunnag/thaime_analysis/master/project_briefs_data.csv", header = T, stringsAsFactors = F)
