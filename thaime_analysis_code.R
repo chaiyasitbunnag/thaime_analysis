@@ -8,6 +8,7 @@ library(stringr)
 library(tidyr)
 library(readr)
 library(reshape2)
+library(ggrepel)
 extrafont::loadfonts(device = "win")
 
 # --- set local settings --- #
@@ -236,7 +237,33 @@ collected_tables_2 %>%
                                  TRUE ~ "Others")) %>%
    count(budget_bin, sort = T)
 
-# save data
+# save data #
 write.csv(collected_tables_2, "project_briefs_data.csv", row.names = F)
 # import data
 #x <- read.csv("https://raw.githubusercontent.com/chaiyasitbunnag/thaime_analysis/master/project_briefs_data.csv", header = T, stringsAsFactors = F)
+
+
+# distribution by ministry
+m_name <- read_lines("ministry_name.csv")
+m_name <- m_name[-1]
+m_name <- paste(m_name, collapse = "|")
+m_dist_data <- collected_tables_2[grep(m_name, collected_tables_2$ministry_name), ]
+
+g <- 
+m_dist_data %>%
+   filter(!is.na(budget)) %>% 
+   mutate(ministry_name = reorder(ministry_name, budget, FUN = max)) %>% 
+   group_by(ministry_name) %>%
+   mutate(budget = round(budget/1000000, 0))
+   
+ggplot(data = g, aes(x = ministry_name, y = budget)) +
+   geom_point(aes(col = ministry_name), alpha = 0.3) +
+   coord_flip() +
+   annotate("text", x = "สำนักนายกรัฐมนตรี",y =110000, label = "SME", col = "pink", fontface = "bold", family = "Consolas", size= 3) +
+   annotate("text", x = "เกษตรและสหกรณ์",y =220000, label = "One Stop\nService", col = "salmon", fontface = "bold", family = "Consolas", size = 3) +
+   theme_minimal() +
+   theme(legend.position = "none",
+         panel.grid = element_blank(),
+         axis.title = element_text(family = "Consolas", face = "bold"),
+         axis.text.x = element_text(family = "Consolas", size = 7)) +
+   labs(y = "Budget Proposed (Millions)", x = "Ministry Name")
